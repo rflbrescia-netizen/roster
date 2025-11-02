@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Controller Roster (GitHub Images - FIX + Roller Order + Mobile)</title>
+<title>Controller Roster (GitHub Images • Roller Order • Drag&Drop)</title>
 <style>
   :root{
     --bg:#0c111a; --panel:#121826; --muted:#a6b7d2; --accent:#39d5ff; --danger:#ff5575; --ok:#78ffb3;
@@ -24,18 +24,20 @@
   .btn-ok{ background:var(--ok); color:#00140a; font-weight:800; }
   .tiny{ font-size:12px; color:var(--muted); }
   .bar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
   .players{ display:grid; gap:10px; max-height:60vh; overflow:auto; padding-right:6px; }
   .player{ display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:10px; padding:10px; background:#0c1422; border:1px solid rgba(255,255,255,.06); border-radius:10px; }
   .player img{ width:64px; height:80px; object-fit:cover; border-radius:10px; border:1px solid rgba(255,255,255,.08); background:#0a0f18; }
   .name{ font-weight:700; font-size:16px; }
   input[type="checkbox"]{ width:24px; height:24px; }
-  #status{ margin-left:8px; }
-  .hint{ margin-top:6px; }
-  code{ background:#0b111b; padding:2px 6px; border-radius:6px; }
 
+  /* Ordine Roller + Drag & Drop */
   .order{ display:grid; gap:8px; max-height:45vh; overflow:auto; }
-  .order-item{ display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:10px; padding:10px; background:#0c1422; border:1px solid rgba(255,255,255,.06); border-radius:10px; }
+  .order-item{ display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:10px; padding:10px; background:#0c1422; border:1px solid rgba(255,255,255,.06); border-radius:10px; cursor:grab; }
+  .order-item:active{ cursor:grabbing; }
   .order-item img{ width:48px; height:60px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,.08); }
+  .order-item.dragging{ opacity:.6; outline:2px dashed rgba(57,213,255,.6); }
+  .order-drop-hint{ height:8px; margin:4px 0; border-radius:8px; background:rgba(57,213,255,.6); }
 
   @media (max-width: 980px){
     .wrap{ grid-template-columns:1fr; }
@@ -47,7 +49,7 @@
 </style>
 </head>
 <body>
-  <header><h1>Controller Roster — Carica da GitHub (solo foto) • con Ordine Roller</h1></header>
+  <header><h1>Controller Roster — GitHub Images • Lineup • Roller • Drag&Drop Order</h1></header>
 
   <div class="wrap">
     <!-- Sorgente GitHub -->
@@ -77,7 +79,7 @@
         <button class="btn" id="btnClearSel">Pulisci selezione</button>
         <span id="status" class="tiny"></span>
       </div>
-      <p class="tiny hint">Estensioni supportate: <code>.jpg .jpeg .png .webp</code>. I nomi sono ricavati dal filename.</p>
+      <p class="tiny">Estensioni supportate: <code>.jpg .jpeg .png .webp</code>. I nomi sono ricavati dal filename.</p>
     </section>
 
     <!-- Comandi Overlay -->
@@ -100,7 +102,7 @@
     <!-- Ordine Roller -->
     <section class="card" style="grid-column: 1 / span 2;">
       <h2>Ordine Roster Roller</h2>
-      <div class="tiny">Usa ↑/↓ per riordinare; salva per l'overlay.</div>
+      <div class="tiny">Trascina le card per riordinare; ↑/↓ come fallback; <b>Salva ordine</b> per inviare all’overlay.</div>
       <div id="orderList" class="order" style="margin-top:8px;"></div>
       <div class="bar" style="margin-top:8px;">
         <button class="btn btn-ok" id="saveOrder">Salva ordine</button>
@@ -113,7 +115,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script>
-/* ====== Firebase CONFIG: usa la TUA (questa è quella che hai passato) ====== */
+/* ===== Firebase CONFIG (quella che hai passato) ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyD4yelGFXgB520udav97oM2gGQkRd9gKYk",
   authDomain: "roster-55059.firebaseapp.com",
@@ -123,26 +125,26 @@ const firebaseConfig = {
   messagingSenderId: "689419688801",
   appId: "1:689419688801:web:edf1d12948281a77fb0320"
 };
-const app = firebase.initializeApp(firebaseConfig);
-const db  = firebase.database();
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-/* ====== Helpers DOM ====== */
+/* ===== Helpers DOM ===== */
 const $ = (s)=>document.querySelector(s);
 const playersEl = $('#players');
 const statusEl  = $('#status');
 const orderEl   = $('#orderList');
 
-/* ====== Bind UI ====== */
-$('#scan').onclick       = scanRepo;
-$('#btnRoller').onclick  = triggerRoller;
-$('#btnLineup').onclick  = sendLineup;
-$('#btnStop').onclick    = setIdle;
-$('#btnSelAll').onclick  = () => setAllChecks(true);
-$('#btnClearSel').onclick= () => setAllChecks(false);
-$('#saveOrder').onclick  = saveOrder;
-$('#resetOrder').onclick = resetOrder;
+/* ===== Bind UI ===== */
+$('#scan').onclick        = scanRepo;
+$('#btnRoller').onclick   = triggerRoller;
+$('#btnLineup').onclick   = sendLineup;
+$('#btnStop').onclick     = setIdle;
+$('#btnSelAll').onclick   = () => setAllChecks(true);
+$('#btnClearSel').onclick = () => setAllChecks(false);
+$('#saveOrder').onclick   = saveOrder;
+$('#resetOrder').onclick  = resetOrder;
 
-/* ====== Live sync roster ====== */
+/* ===== Live sync roster ===== */
 let liveRoster = {};
 db.ref('/roster').on('value', snap => {
   liveRoster = snap.val() || {};
@@ -150,7 +152,7 @@ db.ref('/roster').on('value', snap => {
   renderOrder(liveRoster);
 });
 
-/* ====== Scan GitHub and write /roster ====== */
+/* ===== GitHub → /roster ===== */
 function scanRepo(){
   const owner = $('#ghOwner').value.trim();
   const repo  = $('#ghRepo').value.trim();
@@ -180,11 +182,12 @@ function scanRepo(){
       if(!images.length){ statusEl.textContent = 'Nessuna immagine trovata nella cartella indicata.'; return; }
 
       const normalized = {};
+      const now = Date.now();
       images.forEach(file => {
         const nameGuess = prettyName(file.name);
         const id = genId(nameGuess);
         const imgUrl = file.download_url ? file.download_url : toRaw(owner, repo, path, file.name);
-        normalized[id] = { name: nameGuess, img: imgUrl, updatedAt: Date.now() };
+        normalized[id] = { name: nameGuess, img: imgUrl, updatedAt: now };
       });
 
       return db.ref('/roster').set(normalized).then(() => {
@@ -198,7 +201,7 @@ function scanRepo(){
     });
 }
 
-/* ====== Render roster list ====== */
+/* ===== Render Roster (thumbnail + checkbox + flash) ===== */
 function renderRoster(roster){
   playersEl.innerHTML = '';
   Object.keys(roster).forEach(id => {
@@ -219,59 +222,57 @@ function renderRoster(roster){
   });
 }
 
-/* ====== Select helpers ====== */
 function setAllChecks(val){
   document.querySelectorAll('.pickLineup').forEach(el => el.checked = !!val);
 }
 
-/* ====== Roller order UI ====== */
+/* ===== Roller order UI (Drag & Drop + ↑/↓) ===== */
 function renderOrder(roster){
   orderEl.innerHTML = '';
   const ids = Object.keys(roster);
   ids.forEach((id, idx) => {
-    const p = roster[id]; if(!p) return;
+    const p = roster[id]; if (!p) return;
     const row = document.createElement('div');
     row.className = 'order-item';
+    row.dataset.id = id;
+    row.draggable = true;
     row.innerHTML =
       `<img src="${p.img}" alt="${p.name||''}">
        <div class="name">${p.name||''}</div>
        <button class="btn" data-idx="${idx}" data-act="up">↑</button>
        <button class="btn" data-idx="${idx}" data-act="down">↓</button>`;
-    row.querySelector('[data-act="up"]').onclick   = () => moveOrder(ids, idx, -1);
-    row.querySelector('[data-act="down"]').onclick = () => moveOrder(ids, idx, +1);
+    row.querySelector('[data-act="up"]').onclick   = () => moveOrder(idx, -1);
+    row.querySelector('[data-act="down"]').onclick = () => moveOrder(idx, +1);
+    addDnDHandlers(row);
     orderEl.appendChild(row);
   });
-  // cache last built order on element for save
-  orderEl.dataset.current = JSON.stringify(Object.keys(roster));
+  orderEl.addEventListener('dragover', onDragOverContainer);
+  orderEl.addEventListener('drop', onDropContainer);
 }
 
-function moveOrder(ids, index, dir){
+function currentOrderFromDOM(){
+  return Array.from(orderEl.querySelectorAll('.order-item'))
+              .map(row => row.dataset.id);
+}
+
+function moveOrder(index, dir){
+  const ids = currentOrderFromDOM();
   const j = index + dir;
-  if(j < 0 || j >= ids.length) return;
+  if (j < 0 || j >= ids.length) return;
   [ids[index], ids[j]] = [ids[j], ids[index]];
-  // rebuild a fake roster in the new order to render UI
   const reordered = {};
-  ids.forEach(id => { if(liveRoster[id]) reordered[id] = liveRoster[id]; });
+  ids.forEach(id => { if (liveRoster[id]) reordered[id] = liveRoster[id]; });
   renderOrder(reordered);
 }
 
 function saveOrder(){
   try{
-    // read visible order rows to get order-of-appearance
-    const names = Array.from(orderEl.querySelectorAll('.order-item .name')).map(n => n.textContent);
-    // map names back to ids (stable but not perfect if duplicate names; better: read hidden ids)
-    // safer approach: rebuild from DOM order using image src match
-    const idsVisible = Array.from(orderEl.querySelectorAll('.order-item')).map(row => {
-      const nm = row.querySelector('.name').textContent;
-      // find first id with that name not yet used
-      const found = Object.keys(liveRoster).find(id => liveRoster[id].name === nm && !idsVisible?.includes(id));
-      return found || nm; // fallback
-    });
+    const idsVisible = currentOrderFromDOM();
     db.ref('/roller/order').set(idsVisible);
     alert('Ordine salvato.');
   }catch(e){
     console.error(e);
-    alert('Errore salvataggio ordine: '+(e.message||e));
+    alert('Errore salvataggio ordine: ' + (e.message || e));
   }
 }
 
@@ -281,7 +282,93 @@ function resetOrder(){
   renderOrder(liveRoster);
 }
 
-/* ====== Overlay commands ====== */
+/* ----- DnD helpers ----- */
+let draggedEl = null;
+let dropHintEl = null;
+
+function addDnDHandlers(el){
+  el.addEventListener('dragstart', (e)=>{
+    draggedEl = el;
+    el.classList.add('dragging');
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', el.dataset.id); } catch(_) {}
+    }
+  });
+  el.addEventListener('dragend', ()=>{
+    if (draggedEl) draggedEl.classList.remove('dragging');
+    draggedEl = null;
+    removeDropHint();
+  });
+  el.addEventListener('dragover', (e)=>{
+    e.preventDefault();
+    e.dataTransfer && (e.dataTransfer.dropEffect = 'move');
+    insertDropHint(el, e.clientY);
+  });
+  el.addEventListener('drop', (e)=>{
+    e.preventDefault();
+    if (!draggedEl || draggedEl === el) return;
+    commitDrop(el, e.clientY);
+  });
+}
+
+function onDragOverContainer(e){
+  e.preventDefault();
+  e.dataTransfer && (e.dataTransfer.dropEffect = 'move');
+  if (!e.target.closest('.order-item') && draggedEl) insertDropHint(null, null, true);
+}
+
+function onDropContainer(e){
+  e.preventDefault();
+  if (!draggedEl) return;
+  const targetRow = e.target.closest('.order-item');
+  if (targetRow) commitDrop(targetRow, e.clientY);
+  else commitDrop(null, null, true);
+}
+
+function insertDropHint(targetRow, clientY, atEnd=false){
+  if (!dropHintEl){
+    dropHintEl = document.createElement('div');
+    dropHintEl.className = 'order-drop-hint';
+  }
+  if (atEnd || !targetRow){
+    orderEl.appendChild(dropHintEl);
+    return;
+  }
+  const box = targetRow.getBoundingClientRect();
+  const before = clientY < box.top + box.height/2;
+  if (before) orderEl.insertBefore(dropHintEl, targetRow);
+  else        orderEl.insertBefore(dropHintEl, targetRow.nextSibling);
+}
+
+function removeDropHint(){
+  if (dropHintEl && dropHintEl.parentNode) dropHintEl.parentNode.removeChild(dropHintEl);
+  dropHintEl = null;
+}
+
+function commitDrop(targetRow, clientY, atEnd=false){
+  if (!draggedEl) return;
+  if (dropHintEl){
+    orderEl.insertBefore(draggedEl, dropHintEl);
+  } else if (targetRow){
+    const box = targetRow.getBoundingClientRect();
+    const before = clientY < box.top + box.height/2;
+    orderEl.insertBefore(draggedEl, before ? targetRow : targetRow.nextSibling);
+  } else if (atEnd){
+    orderEl.appendChild(draggedEl);
+  }
+  removeDropHint();
+  draggedEl.classList.remove('dragging');
+
+  const ids = currentOrderFromDOM();
+  const reordered = {};
+  ids.forEach(id => { if (liveRoster[id]) reordered[id] = liveRoster[id]; });
+  renderOrder(reordered);
+  // Auto-save? decommenta la riga sotto se vuoi salvare automaticamente ad ogni drop
+  // db.ref('/roller/order').set(ids);
+}
+
+/* ===== Overlay commands ===== */
 function triggerRoller(){
   db.ref('/mode').set('roller').then(()=>db.ref('/roller/start').set(Date.now()));
 }
@@ -304,7 +391,7 @@ function flashPlayer(playerId){
   });
 }
 
-/* ====== Utils ====== */
+/* ===== Utils ===== */
 function toRaw(owner, repo, path, name){
   const p = path ? (path.replace(/^\/+|\/+$/g,'') + '/') : '';
   return `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${p}${name}`;
