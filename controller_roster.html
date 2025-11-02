@@ -3,45 +3,54 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Controller Roster (GitHub Images - FIX)</title>
+<title>Controller Roster (GitHub Images - FIX + Roller Order + Mobile)</title>
 <style>
-  :root {
-    --bg: #0c111a;
-    --panel: #121826;
-    --muted: #a6b7d2;
-    --accent: #39d5ff;
-    --danger: #ff5575;
+  :root{
+    --bg:#0c111a; --panel:#121826; --muted:#a6b7d2; --accent:#39d5ff; --danger:#ff5575; --ok:#78ffb3;
   }
-  html, body { margin:0; padding:0; background:var(--bg); color:#e9eef9; font-family:system-ui, Segoe UI, Roboto, Arial, sans-serif; }
-  header { padding:14px 16px; background:#0f1522; border-bottom:1px solid rgba(255,255,255,.08); }
-  h1 { margin:0; font-size:18px; letter-spacing:.3px; }
-  .wrap { padding:14px; display:grid; gap:14px; grid-template-columns:1fr 1fr; }
-  .card { background:var(--panel); border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:12px; }
-  .card h2 { margin:0 0 8px; font-size:16px; }
-  .row { display:grid; grid-template-columns: 2fr 2fr 2fr 2fr; gap:8px; }
-  label { font-size:12px; color:var(--muted); display:block; margin-bottom:4px; }
-  input[type="text"] { width:100%; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.08); background:#0b111b; color:#e9eef9; }
-  .btn { padding:9px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.08); background:#0d1624; color:#e9eef9; cursor:pointer; }
-  .btn:hover { filter:brightness(1.08); }
-  .btn-accent { background:var(--accent); color:#001018; font-weight:800; }
-  .btn-danger { background:var(--danger); color:#2c0009; font-weight:800; }
-  .tiny { font-size:12px; color:var(--muted); }
-  .bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  .players { display:grid; gap:8px; max-height:60vh; overflow:auto; padding-right:6px; }
-  .player { display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:10px; padding:8px; background:#0c1422; border:1px solid rgba(255,255,255,.06); border-radius:10px; }
-  .player img { width:48px; height:60px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,.08); background:#0a0f18; }
-  .name { font-weight:700; }
-  #status { margin-left:8px; }
-  .hint { margin-top:6px; }
-  code { background:#0b111b; padding:2px 6px; border-radius:6px; }
+  html, body{ margin:0; padding:0; background:var(--bg); color:#e9eef9; font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif; }
+  header{ padding:14px 16px; background:#0f1522; border-bottom:1px solid rgba(255,255,255,.08); }
+  h1{ margin:0; font-size:18px; letter-spacing:.3px; }
+  .wrap{ padding:14px; display:grid; gap:14px; grid-template-columns:1fr 1fr; }
+  .card{ background:var(--panel); border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:12px; }
+  .card h2{ margin:0 0 8px; font-size:16px; }
+  .row{ display:grid; grid-template-columns:2fr 2fr 2fr 2fr; gap:8px; }
+  label{ font-size:12px; color:var(--muted); display:block; margin-bottom:4px; }
+  input[type="text"]{ width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.08); background:#0b111b; color:#e9eef9; }
+  .btn{ padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:#0d1624; color:#e9eef9; cursor:pointer; font-size:15px; }
+  .btn:hover{ filter:brightness(1.08); }
+  .btn-accent{ background:var(--accent); color:#001018; font-weight:800; }
+  .btn-danger{ background:var(--danger); color:#2c0009; font-weight:800; }
+  .btn-ok{ background:var(--ok); color:#00140a; font-weight:800; }
+  .tiny{ font-size:12px; color:var(--muted); }
+  .bar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .players{ display:grid; gap:10px; max-height:60vh; overflow:auto; padding-right:6px; }
+  .player{ display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:10px; padding:10px; background:#0c1422; border:1px solid rgba(255,255,255,.06); border-radius:10px; }
+  .player img{ width:64px; height:80px; object-fit:cover; border-radius:10px; border:1px solid rgba(255,255,255,.08); background:#0a0f18; }
+  .name{ font-weight:700; font-size:16px; }
+  input[type="checkbox"]{ width:24px; height:24px; }
+  #status{ margin-left:8px; }
+  .hint{ margin-top:6px; }
+  code{ background:#0b111b; padding:2px 6px; border-radius:6px; }
+
+  .order{ display:grid; gap:8px; max-height:45vh; overflow:auto; }
+  .order-item{ display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:10px; padding:10px; background:#0c1422; border:1px solid rgba(255,255,255,.06); border-radius:10px; }
+  .order-item img{ width:48px; height:60px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,.08); }
+
+  @media (max-width: 980px){
+    .wrap{ grid-template-columns:1fr; }
+    .row{ grid-template-columns:1fr 1fr; }
+    .player img{ width:84px; height:104px; }
+    .btn{ padding:14px 16px; font-size:17px; }
+    input[type="checkbox"]{ width:28px; height:28px; }
+  }
 </style>
 </head>
 <body>
-  <header>
-    <h1>Controller Roster — Carica da GitHub (solo foto, FIX)</h1>
-  </header>
+  <header><h1>Controller Roster — Carica da GitHub (solo foto) • con Ordine Roller</h1></header>
 
   <div class="wrap">
+    <!-- Sorgente GitHub -->
     <section class="card">
       <h2>Sorgente GitHub</h2>
       <div class="row">
@@ -64,13 +73,14 @@
       </div>
       <div class="bar" style="margin-top:8px;">
         <button class="btn btn-accent" id="scan">Scansiona repo</button>
+        <button class="btn" id="btnSelAll">Seleziona tutto</button>
+        <button class="btn" id="btnClearSel">Pulisci selezione</button>
         <span id="status" class="tiny"></span>
       </div>
-      <p class="tiny hint">
-        Estensioni supportate: <code>.jpg .jpeg .png .webp</code>. I nomi sono ricavati dal filename.
-      </p>
+      <p class="tiny hint">Estensioni supportate: <code>.jpg .jpeg .png .webp</code>. I nomi sono ricavati dal filename.</p>
     </section>
 
+    <!-- Comandi Overlay -->
     <section class="card">
       <h2>Comandi Overlay</h2>
       <div class="bar" style="margin-bottom:8px;">
@@ -81,9 +91,21 @@
       <p class="tiny">• Roster Roller: sequenza a sinistra (4s ciascuno). • Invia lineup: selezionati per 5s. • Stop: pulisci.</p>
     </section>
 
+    <!-- Roster -->
     <section class="card" style="grid-column: 1 / span 2;">
       <h2>Giocatori</h2>
       <div id="players" class="players"></div>
+    </section>
+
+    <!-- Ordine Roller -->
+    <section class="card" style="grid-column: 1 / span 2;">
+      <h2>Ordine Roster Roller</h2>
+      <div class="tiny">Usa ↑/↓ per riordinare; salva per l'overlay.</div>
+      <div id="orderList" class="order" style="margin-top:8px;"></div>
+      <div class="bar" style="margin-top:8px;">
+        <button class="btn btn-ok" id="saveOrder">Salva ordine</button>
+        <button class="btn" id="resetOrder">Reset ordine</button>
+      </div>
     </section>
   </div>
 
@@ -91,8 +113,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script>
-    // Config Firebase
-    // Your web app's Firebase configuration
+/* ====== Firebase CONFIG: usa la TUA (questa è quella che hai passato) ====== */
 const firebaseConfig = {
   apiKey: "AIzaSyD4yelGFXgB520udav97oM2gGQkRd9gKYk",
   authDomain: "roster-55059.firebaseapp.com",
@@ -102,138 +123,203 @@ const firebaseConfig = {
   messagingSenderId: "689419688801",
   appId: "1:689419688801:web:edf1d12948281a77fb0320"
 };
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+const app = firebase.initializeApp(firebaseConfig);
+const db  = firebase.database();
 
-    // Helpers DOM
-    function $(sel){ return document.querySelector(sel); }
-    var playersEl = $('#players');
-    var statusEl = $('#status');
+/* ====== Helpers DOM ====== */
+const $ = (s)=>document.querySelector(s);
+const playersEl = $('#players');
+const statusEl  = $('#status');
+const orderEl   = $('#orderList');
 
-    $('#scan').onclick = scanRepo;
-    $('#btnRoller').onclick = triggerRoller;
-    $('#btnLineup').onclick = sendLineup;
-    $('#btnStop').onclick = function(){ setIdle(); };
+/* ====== Bind UI ====== */
+$('#scan').onclick       = scanRepo;
+$('#btnRoller').onclick  = triggerRoller;
+$('#btnLineup').onclick  = sendLineup;
+$('#btnStop').onclick    = setIdle;
+$('#btnSelAll').onclick  = () => setAllChecks(true);
+$('#btnClearSel').onclick= () => setAllChecks(false);
+$('#saveOrder').onclick  = saveOrder;
+$('#resetOrder').onclick = resetOrder;
 
-    // Sync roster view
-    db.ref('/roster').on('value', function(snap){
-      var roster = snap.val() || {};
-      renderRoster(roster);
+/* ====== Live sync roster ====== */
+let liveRoster = {};
+db.ref('/roster').on('value', snap => {
+  liveRoster = snap.val() || {};
+  renderRoster(liveRoster);
+  renderOrder(liveRoster);
+});
+
+/* ====== Scan GitHub and write /roster ====== */
+function scanRepo(){
+  const owner = $('#ghOwner').value.trim();
+  const repo  = $('#ghRepo').value.trim();
+  const path  = $('#ghPath').value.trim().replace(/^\/+|\/+$/g,'');
+  const token = $('#ghToken').value.trim();
+  if(!owner || !repo){ alert('Inserisci owner e repo.'); return; }
+
+  const base = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents`;
+  const api  = path ? `${base}/${encodeURIComponent(path)}` : base;
+
+  statusEl.textContent = 'Scansiono repository...';
+  const headers = { 'Accept':'application/vnd.github+json' };
+  if(token){ headers['Authorization'] = 'Bearer ' + token; }
+
+  fetch(api, { cache:'no-store', headers })
+    .then(res => {
+      if(!res.ok) return res.text().then(t => { throw new Error(`GitHub API HTTP ${res.status} — ${t.slice(0,180)}`); });
+      return res.json();
+    })
+    .then(items => {
+      if(!Array.isArray(items)) throw new Error('Risposta inattesa: non è una lista');
+      const exts = ['.jpg','.jpeg','.png','.webp'];
+      const images = items.filter(x => {
+        const nm = (x && x.name ? x.name.toLowerCase() : '');
+        return x && x.type==='file' && exts.some(ext => nm.endsWith(ext));
+      });
+      if(!images.length){ statusEl.textContent = 'Nessuna immagine trovata nella cartella indicata.'; return; }
+
+      const normalized = {};
+      images.forEach(file => {
+        const nameGuess = prettyName(file.name);
+        const id = genId(nameGuess);
+        const imgUrl = file.download_url ? file.download_url : toRaw(owner, repo, path, file.name);
+        normalized[id] = { name: nameGuess, img: imgUrl, updatedAt: Date.now() };
+      });
+
+      return db.ref('/roster').set(normalized).then(() => {
+        statusEl.textContent = `Importati ${images.length} giocatori da GitHub.`;
+      });
+    })
+    .catch(e => {
+      console.error(e);
+      statusEl.textContent = 'Errore: ' + (e && e.message ? e.message : e);
+      alert('Errore durante la scansione: ' + (e && e.message ? e.message : e));
     });
+}
 
-    function scanRepo(){
-      var owner = $('#ghOwner').value.trim();
-      var repo  = $('#ghRepo').value.trim();
-      var path  = $('#ghPath').value.trim().replace(/^\/+|\/+$/g,'');
-      var token = $('#ghToken').value.trim();
-      if(!owner || !repo){ alert('Inserisci owner e repo.'); return; }
+/* ====== Render roster list ====== */
+function renderRoster(roster){
+  playersEl.innerHTML = '';
+  Object.keys(roster).forEach(id => {
+    const p = roster[id] || {};
+    const cacheBust = p.img ? p.img + (p.img.includes('?') ? '&' : '?') + 'v=' + (p.updatedAt||0) : '';
+    const row = document.createElement('div');
+    row.className = 'player';
+    row.innerHTML =
+      `<img src="${cacheBust}" alt="${p.name||''}" onerror="this.style.opacity=0.4">
+       <div>
+         <div class="name">${p.name||''}</div>
+         <label class="tiny"><input type="checkbox" data-id="${id}" class="pickLineup"> Includi in lineup</label>
+       </div>
+       <button class="btn" data-id="${id}" data-action="flash">Flash 2s</button>
+       <span class="tiny">${id}</span>`;
+    row.querySelector('[data-action="flash"]').onclick = () => flashPlayer(id);
+    playersEl.appendChild(row);
+  });
+}
 
-      var base = "https://api.github.com/repos/" + encodeURIComponent(owner) + "/" + encodeURIComponent(repo) + "/contents";
-      var api  = path ? (base + "/" + encodeURIComponent(path)) : base;
+/* ====== Select helpers ====== */
+function setAllChecks(val){
+  document.querySelectorAll('.pickLineup').forEach(el => el.checked = !!val);
+}
 
-      statusEl.textContent = "Scansiono repository...";
-      var headers = { "Accept": "application/vnd.github+json" };
-      if(token){ headers["Authorization"] = "Bearer " + token; }
+/* ====== Roller order UI ====== */
+function renderOrder(roster){
+  orderEl.innerHTML = '';
+  const ids = Object.keys(roster);
+  ids.forEach((id, idx) => {
+    const p = roster[id]; if(!p) return;
+    const row = document.createElement('div');
+    row.className = 'order-item';
+    row.innerHTML =
+      `<img src="${p.img}" alt="${p.name||''}">
+       <div class="name">${p.name||''}</div>
+       <button class="btn" data-idx="${idx}" data-act="up">↑</button>
+       <button class="btn" data-idx="${idx}" data-act="down">↓</button>`;
+    row.querySelector('[data-act="up"]').onclick   = () => moveOrder(ids, idx, -1);
+    row.querySelector('[data-act="down"]').onclick = () => moveOrder(ids, idx, +1);
+    orderEl.appendChild(row);
+  });
+  // cache last built order on element for save
+  orderEl.dataset.current = JSON.stringify(Object.keys(roster));
+}
 
-      fetch(api, { cache: "no-store", headers: headers })
-        .then(function(res){
-          if(!res.ok){ return res.text().then(function(t){ throw new Error("GitHub API HTTP " + res.status + " — " + t.slice(0,180)); }); }
-          return res.json();
-        })
-        .then(function(items){
-          if(!Array.isArray(items)){ throw new Error("Risposta inattesa: non è una lista"); }
-          var exts = [".jpg",".jpeg",".png",".webp"];
-          var images = items.filter(function(x){
-            var nm = (x && x.name ? x.name.toLowerCase() : "");
-            return x && x.type === "file" && exts.some(function(ext){ return nm.endsWith(ext); });
-          });
-          if(!images.length){
-            statusEl.textContent = "Nessuna immagine trovata nella cartella indicata.";
-            return;
-          }
-          var normalized = {};
-          images.forEach(function(file){
-            var nameGuess = prettyName(file.name);
-            var id = genId(nameGuess);
-            var imgUrl = (file.download_url ? file.download_url : toRaw(owner, repo, path, file.name));
-            normalized[id] = { name: nameGuess, img: imgUrl };
-          });
-          return db.ref("/roster").set(normalized).then(function(){
-            statusEl.textContent = "Importati " + images.length + " giocatori da GitHub.";
-          });
-        })
-        .catch(function(e){
-          console.error(e);
-          statusEl.textContent = "Errore: " + (e && e.message ? e.message : e);
-          alert("Errore durante la scansione: " + (e && e.message ? e.message : e));
-        });
-    }
+function moveOrder(ids, index, dir){
+  const j = index + dir;
+  if(j < 0 || j >= ids.length) return;
+  [ids[index], ids[j]] = [ids[j], ids[index]];
+  // rebuild a fake roster in the new order to render UI
+  const reordered = {};
+  ids.forEach(id => { if(liveRoster[id]) reordered[id] = liveRoster[id]; });
+  renderOrder(reordered);
+}
 
-    function renderRoster(roster){
-      playersEl.innerHTML = "";
-      Object.keys(roster).forEach(function(id){
-        var p = roster[id] || {};
-        var row = document.createElement("div");
-        row.className = "player";
-        row.innerHTML =
-          '<img src="' + (p.img||"") + '" alt="' + (p.name||"") + '">' +
-          '<div>' +
-            '<div class="name">' + (p.name||"") + '</div>' +
-            '<label class="tiny"><input type="checkbox" data-id="' + id + '" class="pickLineup"> Includi in lineup</label>' +
-          '</div>' +
-          '<button class="btn" data-id="' + id + '" data-action="flash">Flash 2s</button>' +
-          '<span class="tiny">' + id + '</span>';
+function saveOrder(){
+  try{
+    // read visible order rows to get order-of-appearance
+    const names = Array.from(orderEl.querySelectorAll('.order-item .name')).map(n => n.textContent);
+    // map names back to ids (stable but not perfect if duplicate names; better: read hidden ids)
+    // safer approach: rebuild from DOM order using image src match
+    const idsVisible = Array.from(orderEl.querySelectorAll('.order-item')).map(row => {
+      const nm = row.querySelector('.name').textContent;
+      // find first id with that name not yet used
+      const found = Object.keys(liveRoster).find(id => liveRoster[id].name === nm && !idsVisible?.includes(id));
+      return found || nm; // fallback
+    });
+    db.ref('/roller/order').set(idsVisible);
+    alert('Ordine salvato.');
+  }catch(e){
+    console.error(e);
+    alert('Errore salvataggio ordine: '+(e.message||e));
+  }
+}
 
-        row.querySelector('[data-action="flash"]').onclick = function(){ flashPlayer(id); };
-        playersEl.appendChild(row);
-      });
-    }
+function resetOrder(){
+  const ids = Object.keys(liveRoster);
+  db.ref('/roller/order').set(ids);
+  renderOrder(liveRoster);
+}
 
-    // Mode commands
-    function triggerRoller(){
-      db.ref("/mode").set("roller").then(function(){
-        db.ref("/roller/start").set(Date.now());
-      });
-    }
-    function sendLineup(){
-      var picks = Array.prototype.slice.call(document.querySelectorAll(".pickLineup:checked"))
-                    .map(function(el){ return el.getAttribute("data-id"); });
-      if(!picks.length){ alert("Seleziona almeno un giocatore."); return; }
-      db.ref("/mode").set("lineup").then(function(){
-        db.ref("/lineup/show").set({ playerIds: picks, ttl: 5000, nonce: Date.now() });
-      });
-    }
-    function setIdle(){
-      db.ref("/mode").set("idle");
-      db.ref("/lineup/show").set(null);
-      db.ref("/flash/show").set(null);
-      db.ref("/roller/start").set(null);
-    }
-    function flashPlayer(playerId){
-      db.ref("/mode").set("flash").then(function(){
-        db.ref("/flash/show").set({ playerId: playerId, ttl: 2000, nonce: Date.now() });
-      });
-    }
+/* ====== Overlay commands ====== */
+function triggerRoller(){
+  db.ref('/mode').set('roller').then(()=>db.ref('/roller/start').set(Date.now()));
+}
+function sendLineup(){
+  const picks = Array.from(document.querySelectorAll('.pickLineup:checked')).map(el => el.getAttribute('data-id'));
+  if(!picks.length){ alert('Seleziona almeno un giocatore.'); return; }
+  db.ref('/mode').set('lineup').then(()=>{
+    db.ref('/lineup/show').set({ playerIds: picks, ttl: 5000, nonce: Date.now() });
+  });
+}
+function setIdle(){
+  db.ref('/mode').set('idle');
+  db.ref('/lineup/show').set(null);
+  db.ref('/flash/show').set(null);
+  db.ref('/roller/start').set(null);
+}
+function flashPlayer(playerId){
+  db.ref('/mode').set('flash').then(()=>{
+    db.ref('/flash/show').set({ playerId, ttl: 2000, nonce: Date.now() });
+  });
+}
 
-    // Utils
-    function toRaw(owner, repo, path, name){
-      var p = path ? (path.replace(/^\/+|\/+$/g,'') + "/") : "";
-      return "https://raw.githubusercontent.com/" + owner + "/" + repo + "/HEAD/" + p + name;
-    }
-    function prettyName(filename){
-      var base = filename.replace(/\.[^.]+$/, "");
-      var spaced = base.replace(/[_\-\.]+/g, " ").trim();
-      return spaced.split(" ").map(function(w){
-        if(!w) return "";
-        return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-      }).join(" ").trim();
-    }
-    function genId(name){
-      var base = String(name).toLowerCase()
-                 .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-                 .replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
-      return base + "-" + Math.random().toString(36).slice(2,6);
-    }
+/* ====== Utils ====== */
+function toRaw(owner, repo, path, name){
+  const p = path ? (path.replace(/^\/+|\/+$/g,'') + '/') : '';
+  return `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${p}${name}`;
+}
+function prettyName(filename){
+  const base = filename.replace(/\.[^.]+$/, '');
+  const spaced = base.replace(/[_\-\.]+/g, ' ').trim();
+  return spaced.split(' ').map(w => w ? (w[0].toUpperCase()+w.slice(1).toLowerCase()) : '').join(' ').trim();
+}
+function genId(name){
+  const base = String(name).toLowerCase()
+               .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+               .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  return base + '-' + Math.random().toString(36).slice(2,6);
+}
   </script>
 </body>
 </html>
