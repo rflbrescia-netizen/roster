@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Basket Roster Overlay</title>
+<style>
+  html, body { margin:0; padding:0; overflow:hidden; background:transparent; font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif; }
+  .stage { position:fixed; inset:0; pointer-events:none; }
+
+  /* ROLLER (colonna sinistra) */
+  .roller-lane { position:absolute; top:5%; left:2%; width:28%; height:90%; display:flex; align-items:flex-start; justify-content:flex-start; }
+  .roller-card { position:absolute; left:0; width:92%; max-width:480px; aspect-ratio:4/5; border-radius:18px; box-shadow:0 12px 30px rgba(0,0,0,.35); overflow:hidden; background:rgba(10,14,25,.92); border:1px solid rgba(255,255,255,.08); }
+  .roller-card img{ width:100%; height:100%; object-fit:cover; filter:saturate(1.05) contrast(1.02); }
+  .roller-name{ position:absolute; inset:auto 0 0 0; padding:10px 14px; font-weight:700; font-size:clamp(14px,2.2vw,24px); color:#fff; background:linear-gradient(to top,rgba(0,0,0,.65),transparent 70%); letter-spacing:.4px; text-transform:uppercase; }
+
+  @keyframes slideDownIn{ 0%{transform:translateY(-120%);opacity:0}45%{transform:translateY(0);opacity:1}100%{transform:translateY(0);opacity:1} }
+  @keyframes slideDownOut{ 0%{transform:translateY(0);opacity:1}100%{transform:translateY(120%);opacity:0} }
+
+  /* LINEUP (griglia destra) */
+  .lineup-wrap{ position:absolute; top:6%; right:4%; width:60%; height:88%; display:none; }
+  .lineup-grid{ display:grid; width:100%; height:100%; gap:clamp(10px,1.2vw,18px); align-content:center; justify-content:center; }
+  .lineup-grid.dynamic{ grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); }
+  .lineup-card{ position:relative; border-radius:16px; overflow:hidden; aspect-ratio:4/5; background:rgba(15,20,30,.92); border:1px solid rgba(255,255,255,.08); box-shadow:0 10px 26px rgba(0,0,0,.3); animation:fadeIn 280ms ease-out both; }
+  .lineup-card img{ width:100%; height:100%; object-fit:cover; }
+  .lineup-name{ position:absolute; inset:auto 0 0 0; padding:8px 10px; color:#fff; font-weight:700; background:linear-gradient(to top,rgba(0,0,0,.65),transparent 70%); text-transform:uppercase; font-size:clamp(12px,1.5vw,18px); }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:translateY(0)} }
+
+  /* FLASH (singolo) */
+  .flash-wrap{ position:absolute; bottom:8%; left:4%; width:min(28%,520px); display:none; }
+  .flash-card{ position:relative; width:100%; aspect-ratio:4/5; border-radius:18px; overflow:hidden; background:rgba(10,14,25,.92); border:2px solid #39d5ff; box-shadow:0 14px 34px rgba(0,0,0,.45), 0 0 32px rgba(57,213,255,.35) inset; animation:popIn 220ms ease-out both; }
+  .flash-card img{ width:100%; height:100%; object-fit:cover; }
+  .flash-badge{ position:absolute; top:10px; left:10px; padding:6px 10px; border-radius:999px; background:rgba(57,213,255,.95); color:#001018; font-weight:900; letter-spacing:.4px; text-transform:uppercase; font-size:clamp(11px,1.2vw,14px); }
+  .flash-name{ position:absolute; inset:auto 0 0 0; padding:10px 12px; background:linear-gradient(to top,rgba(0,0,0,.7),transparent 70%); color:#fff; font-weight:800; text-transform:uppercase; font-size:clamp(14px,1.8vw,22px); }
+  @keyframes popIn{ 0%{transform:scale(.95);opacity:0} 100%{transform:scale(1);opacity:1} }
+
+  /* SUBS (cambio) */
+  .subs-wrap{ position:absolute; bottom:8%; right:4%; width:min(60%,820px); display:none; }
+  .subs-area{ position:relative; width:100%; height:auto; display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:center; }
+  .sub-card{ position:relative; border-radius:16px; overflow:hidden; aspect-ratio:4/5; background:rgba(15,20,30,.92); border:2px solid rgba(255,255,255,.1); box-shadow:0 10px 26px rgba(0,0,0,.3); }
+  .sub-card img{ width:100%; height:100%; object-fit:cover; }
+  .sub-badge{ position:absolute; top:10px; left:10px; padding:6px 10px; border-radius:999px; font-weight:900; text-transform:uppercase; font-size:clamp(11px,1.2vw,14px); }
+  .sub-in .sub-badge{ background:#74f5b8; color:#062014; }
+  .sub-out .sub-badge{ background:#ff5575; color:#2c0009; }
+  .sub-name{ position:absolute; inset:auto 0 0 0; padding:10px 12px; color:#fff; font-weight:800; text-transform:uppercase; background:linear-gradient(to top,rgba(0,0,0,.68),transparent 70%); font-size:clamp(14px,1.6vw,20px); }
+
+  @keyframes subInAnim{ 0%{transform:translateX(-12%);opacity:0} 100%{transform:translateX(0);opacity:1} }
+  @keyframes subOutAnim{ 0%{transform:translateX(0);opacity:1} 100%{transform:translateX(12%);opacity:0.15} }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="roller-lane" id="rollerLane"></div>
+    <div class="lineup-wrap" id="lineupWrap"><div class="lineup-grid dynamic" id="lineupGrid"></div></div>
+    <div class="flash-wrap" id="flashWrap"></div>
+    <div class="subs-wrap" id="subsWrap"><div class="subs-area" id="subsArea"></div></div>
+  </div>
+
+  <!-- Firebase compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script>
+/* === Config del tuo file (mantenuta) === */
+const firebaseConfig = {
+  apiKey: "AIzaSyAyVKKlQTXIuSzxrm_2mATvQR1QjUvtRA8",
+  authDomain: "roster-dinamico-esordienti.firebaseapp.com",
+  projectId: "roster-dinamico-esordienti",
+  storageBucket: "roster-dinamico-esordienti.firebasestorage.app",
+  messagingSenderId: "6424935938",
+  appId: "1:6424935938:web:97c30f6f758fafad9eb11b",
+  databaseURL: "https://roster-dinamico-esordienti-default-rtdb.europe-west1.firebasedatabase.app"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* Stato */
+let roster = {};
+let mode = 'idle';
+let rollerAbort = { cancel:false };
+
+/* DOM */
+const $ = s => document.querySelector(s);
+const rollerLane = $('#rollerLane');
+const lineupWrap = $('#lineupWrap');
+const lineupGrid = $('#lineupGrid');
+const flashWrap  = $('#flashWrap');
+const subsWrap   = $('#subsWrap');
+const subsArea   = $('#subsArea');
+
+/* Sync roster */
+db.ref('/roster').on('value', snap => { roster = snap.val() || {}; });
+
+/* Mode */
+db.ref('/mode').on('value', snap => {
+  const newMode = snap.val() || 'idle';
+  if (newMode !== mode) {
+    mode = newMode;
+    stopRoller(); clearLineup(); clearFlash(); clearSubs();
+  }
+});
+
+/* Roller */
+db.ref('/roller/start').on('value', async snap => {
+  if (mode !== 'roller') return;
+  const nonce = snap.val(); if (!nonce) return;
+  const localAbort = { cancel:false }; rollerAbort = localAbort;
+  await runRosterRoller(localAbort);
+});
+
+/* Lineup */
+db.ref('/lineup/show').on('value', snap => {
+  if (mode !== 'lineup') return;
+  const payload = snap.val(); if (!payload || !Array.isArray(payload.playerIds)) return;
+  const ttl = Number(payload.ttl || 5000); showLineup(payload.playerIds, ttl);
+});
+
+/* Flash */
+db.ref('/flash/show').on('value', snap => {
+  if (mode !== 'flash') return;
+  const payload = snap.val(); if (!payload || !payload.playerId) return;
+  const ttl = Number(payload.ttl || 2000); showFlash(payload.playerId, ttl);
+});
+
+/* Subs (Cambi) */
+db.ref('/subs/show').on('value', snap => {
+  if (mode !== 'subs') return;
+  const payload = snap.val(); if (!payload || !payload.inId || !payload.outId) return;
+  const ttl = Number(payload.ttl || 2000); showSubs(payload.inId, payload.outId, ttl);
+});
+
+/* ---------- Roller ---------- */
+function stopRoller(){ if (rollerAbort) rollerAbort.cancel = true; rollerLane.innerHTML=''; }
+async function runRosterRoller(abortToken){
+  rollerLane.innerHTML=''; const players = Object.entries(roster).map(([id,p])=>({id,...p}));
+  if (!players.length) return;
+  for (const p of players){
+    if (abortToken.cancel || mode !== 'roller') break;
+    const card = document.createElement('div');
+    card.className='roller-card';
+    card.style.animation='slideDownIn 600ms ease-out forwards';
+    card.innerHTML = `<img src="${p.img}" alt="${p.name}"><div class="roller-name">${p.name||''}</div>`;
+    rollerLane.appendChild(card);
+    await sleep(600); await sleep(4000);
+    card.style.animation='slideDownOut 520ms ease-in forwards';
+    await sleep(520); card.remove();
+  }
+}
+
+/* ---------- Lineup ---------- */
+let lineupTimer=null;
+function clearLineup(){ if(lineupTimer){clearTimeout(lineupTimer);lineupTimer=null;} lineupWrap.style.display='none'; lineupGrid.innerHTML=''; }
+function showLineup(ids, ttl=5000){
+  clearLineup(); lineupGrid.innerHTML='';
+  ids.forEach(id=>{ const p=roster[id]; if(!p) return;
+    const card=document.createElement('div'); card.className='lineup-card';
+    card.innerHTML=`<img src="${p.img}" alt="${p.name}"><div class="lineup-name">${p.name||''}</div>`;
+    lineupGrid.appendChild(card);
+  });
+  lineupWrap.style.display='block'; lineupGrid.classList.add('dynamic');
+  lineupTimer=setTimeout(clearLineup, ttl);
+}
+
+/* ---------- Flash ---------- */
+let flashTimer=null;
+function clearFlash(){ if(flashTimer){clearTimeout(flashTimer);flashTimer=null;} flashWrap.style.display='none'; flashWrap.innerHTML=''; }
+function showFlash(id, ttl=2000){
+  clearFlash(); const p=roster[id]; if(!p) return;
+  const card=document.createElement('div'); card.className='flash-card';
+  card.innerHTML=`<span class="flash-badge">CANESTRO!</span><img src="${p.img}" alt="${p.name}"><div class="flash-name">${p.name||''}</div>`;
+  flashWrap.appendChild(card); flashWrap.style.display='block';
+  flashTimer=setTimeout(clearFlash, ttl);
+}
+
+/* ---------- Subs (Cambi) ---------- */
+let subsTimer=null;
+function clearSubs(){ if(subsTimer){clearTimeout(subsTimer);subsTimer=null;} subsWrap.style.display='none'; subsArea.innerHTML=''; }
+function showSubs(inId, outId, ttl=2000){
+  clearSubs(); const pin=roster[inId], pout=roster[outId]; if(!pin || !pout) return;
+  const inCard = document.createElement('div'); inCard.className='sub-card sub-in'; inCard.style.animation='subInAnim 260ms ease-out both';
+  inCard.innerHTML=`<span class="sub-badge">IN</span><img src="${pin.img}" alt="${pin.name}"><div class="sub-name">${pin.name||''}</div>`;
+  const outCard= document.createElement('div'); outCard.className='sub-card sub-out'; outCard.style.animation='subOutAnim 420ms ease-in both';
+  outCard.innerHTML=`<span class="sub-badge">OUT</span><img src="${pout.img}" alt="${pout.name}"><div class="sub-name">${pout.name||''}</div>`;
+  subsArea.appendChild(inCard); subsArea.appendChild(outCard); subsWrap.style.display='block';
+  subsTimer=setTimeout(clearSubs, ttl);
+}
+
+/* Helpers */
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+  </script>
+</body>
+</html>
