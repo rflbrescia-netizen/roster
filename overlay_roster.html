@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Basket Roster Overlay</title>
+<title>Basket Roster Overlay (Lineup one-line responsive)</title>
 <style>
   html, body { margin:0; padding:0; overflow:hidden; background:transparent; font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif; }
   .stage { position:fixed; inset:0; pointer-events:none; }
@@ -17,11 +17,27 @@
   @keyframes slideDownIn{ 0%{transform:translateY(-120%);opacity:0}45%{transform:translateY(0);opacity:1}100%{transform:translateY(0);opacity:1} }
   @keyframes slideDownOut{ 0%{transform:translateY(0);opacity:1}100%{transform:translateY(120%);opacity:0} }
 
-  /* LINEUP (griglia destra) */
+  /* LINEUP (sempre una riga) */
   .lineup-wrap{ position:absolute; top:6%; right:4%; width:60%; height:88%; display:none; }
-  .lineup-grid{ display:grid; width:100%; height:100%; gap:clamp(10px,1.2vw,18px); align-content:center; justify-content:center; }
-  .lineup-grid.dynamic{ grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); }
-  .lineup-card{ position:relative; border-radius:16px; overflow:hidden; aspect-ratio:4/5; background:rgba(15,20,30,.92); border:1px solid rgba(255,255,255,.08); box-shadow:0 10px 26px rgba(0,0,0,.3); animation:fadeIn 280ms ease-out both; }
+  .lineup-grid{
+    display:flex;            /* <— riga singola */
+    flex-wrap:nowrap;        /* <— no a capo */
+    gap:clamp(10px,1.2vw,18px);
+    align-items:center;
+    justify-content:flex-start;
+    width:100%; height:100%;
+    overflow:hidden;         /* evita overflow orizzontale */
+  }
+  .lineup-card{
+    position:relative;
+    border-radius:16px; overflow:hidden;
+    background:rgba(15,20,30,.92);
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 10px 26px rgba(0,0,0,.3);
+    aspect-ratio:4/5;        /* mantiene proporzioni */
+    animation:fadeIn 220ms ease-out both;
+    flex:0 0 auto;           /* dimensione fissata via JS */
+  }
   .lineup-card img{ width:100%; height:100%; object-fit:cover; }
   .lineup-name{ position:absolute; inset:auto 0 0 0; padding:8px 10px; color:#fff; font-weight:700; background:linear-gradient(to top,rgba(0,0,0,.65),transparent 70%); text-transform:uppercase; font-size:clamp(12px,1.5vw,18px); }
   @keyframes fadeIn{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:translateY(0)} }
@@ -51,7 +67,7 @@
 <body>
   <div class="stage">
     <div class="roller-lane" id="rollerLane"></div>
-    <div class="lineup-wrap" id="lineupWrap"><div class="lineup-grid dynamic" id="lineupGrid"></div></div>
+    <div class="lineup-wrap" id="lineupWrap"><div class="lineup-grid" id="lineupGrid"></div></div>
     <div class="flash-wrap" id="flashWrap"></div>
     <div class="subs-wrap" id="subsWrap"><div class="subs-area" id="subsArea"></div></div>
   </div>
@@ -60,7 +76,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script>
-/* === Config del tuo file (mantenuta) === */
+'use strict';
+
+/* === Config (uguale al controller) === */
 const firebaseConfig = {
   apiKey: "AIzaSyD4yelGFXgB520udav97oM2gGQkRd9gKYk",
   authDomain: "roster-55059.firebaseapp.com",
@@ -86,6 +104,9 @@ const lineupGrid = $('#lineupGrid');
 const flashWrap  = $('#flashWrap');
 const subsWrap   = $('#subsWrap');
 const subsArea   = $('#subsArea');
+
+/* Utils */
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
 /* Sync roster */
 db.ref('/roster').on('value', snap => { roster = snap.val() || {}; });
@@ -146,18 +167,53 @@ async function runRosterRoller(abortToken){
   }
 }
 
-/* ---------- Lineup ---------- */
+/* ---------- Lineup (sempre una riga) ---------- */
 let lineupTimer=null;
 function clearLineup(){ if(lineupTimer){clearTimeout(lineupTimer);lineupTimer=null;} lineupWrap.style.display='none'; lineupGrid.innerHTML=''; }
+
 function showLineup(ids, ttl=5000){
-  clearLineup(); lineupGrid.innerHTML='';
-  ids.forEach(id=>{ const p=roster[id]; if(!p) return;
+  clearLineup();
+  lineupGrid.innerHTML='';
+  // crea cards
+  ids.forEach(id=>{
+    const p=roster[id]; if(!p) return;
     const card=document.createElement('div'); card.className='lineup-card';
     card.innerHTML=`<img src="${p.img}" alt="${p.name}"><div class="lineup-name">${p.name||''}</div>`;
     lineupGrid.appendChild(card);
   });
-  lineupWrap.style.display='block'; lineupGrid.classList.add('dynamic');
-  lineupTimer=setTimeout(clearLineup, ttl);
+  lineupWrap.style.display='block';
+  layoutLineup();                // calcolo iniziale
+  // ricalcolo quando le immagini hanno caricato (in caso di layout shift)
+  Array.from(lineupGrid.querySelectorAll('img')).forEach(img=>{
+    if (!img.complete) img.addEventListener('load', layoutLineup, { once:true });
+  });
+  lineupTimer=setTimeout(() => { clearLineup(); window.removeEventListener('resize', layoutLineup); }, ttl);
+  // ascolta resize per tenere una riga
+  window.addEventListener('resize', layoutLineup);
+}
+
+/* Calcola la larghezza di ogni card per stare SEMPRE su una sola riga */
+function layoutLineup(){
+  const n = lineupGrid.children.length;
+  if (n===0) return;
+
+  const wrapWidth = lineupWrap.clientWidth;
+  // ricava il gap effettivo (fallback 12px)
+  const styles = getComputedStyle(lineupGrid);
+  const gapPx = parseFloat(styles.gap || styles.columnGap || '12') || 12;
+  const totalGap = gapPx * (n - 1);
+  const available = Math.max(0, wrapWidth - totalGap);
+
+  // larghezza minima accettabile per card (in px)
+  const minCard = 80;
+  // calcolo larghezza ottimale
+  let cardW = Math.floor(available / n);
+  if (cardW < minCard) cardW = minCard; // se lo schermo è minuscolo, le card si ridurranno al minimo ma restano sulla riga (può comparire un po' di clip a destra)
+
+  Array.from(lineupGrid.children).forEach(c=>{
+    c.style.width = cardW + 'px';
+    // aspect-ratio 4/5 mantiene l'altezza coerente
+  });
 }
 
 /* ---------- Flash ---------- */
@@ -183,9 +239,6 @@ function showSubs(inId, outId, ttl=2000){
   subsArea.appendChild(inCard); subsArea.appendChild(outCard); subsWrap.style.display='block';
   subsTimer=setTimeout(clearSubs, ttl);
 }
-
-/* Helpers */
-function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
   </script>
 </body>
 </html>
