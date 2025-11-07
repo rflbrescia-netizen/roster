@@ -161,7 +161,7 @@ async function runRosterRoller(abortToken){
     card.style.animation='slideDownIn 600ms ease-out forwards';
     card.innerHTML = `<img src="${p.img}" alt="${p.name}"><div class="roller-name">${p.name||''}</div>`;
     rollerLane.appendChild(card);
-    await sleep(600); await sleep(4000);
+    await sleep(600); await sleep(2000);
     card.style.animation='slideDownOut 520ms ease-in forwards';
     await sleep(520); card.remove();
   }
