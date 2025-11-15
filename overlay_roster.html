@@ -28,6 +28,13 @@
     width:100%; height:100%;
     overflow:hidden;         /* evita overflow orizzontale */
   }
+  /* Le immagini del lineup non superano 1/3 dell’altezza schermo */
+.lineup img {
+  max-height: 33vh;   /* 1/3 dell’altezza dello schermo */
+  height: auto;
+  width: auto;
+  object-fit: contain;
+}
   .lineup-card{
     position:relative;
     border-radius:16px; overflow:hidden;
