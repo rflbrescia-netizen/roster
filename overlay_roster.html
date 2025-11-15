@@ -35,6 +35,30 @@
   width: auto;
   object-fit: contain;
 }
+/* Container del lineup: avrà una classe in più in base al numero di giocatori */
+.lineup img {
+  height: auto;
+  width: auto;
+  object-fit: contain;
+}
+
+/* 1 o 2 giocatori */
+.lineup.one img,
+.lineup.two img {
+  max-height: 33vh;
+}
+
+/* 3 giocatori */
+.lineup.three img {
+  max-height: 28vh;
+}
+
+/* 4 o più */
+.lineup.many img {
+  max-height: 22vh;
+}
+
+  
   .lineup-card{
     position:relative;
     border-radius:16px; overflow:hidden;
