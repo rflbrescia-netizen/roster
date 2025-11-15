@@ -45,7 +45,10 @@
     animation:fadeIn 220ms ease-out both;
     flex:0 0 auto;           /* dimensione fissata via JS */
   }
-  .lineup-card img{ width:100%; height:100%; object-fit:cover; }
+  .lineup-card img{  max-height: 33vh;
+  height: auto;
+  width: auto;
+  object-fit: contain; }
   .lineup-name{ position:absolute; inset:auto 0 0 0; padding:8px 10px; color:#fff; font-weight:700; background:linear-gradient(to top,rgba(0,0,0,.65),transparent 70%); text-transform:uppercase; font-size:clamp(12px,1.5vw,18px); }
   @keyframes fadeIn{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:translateY(0)} }
 
