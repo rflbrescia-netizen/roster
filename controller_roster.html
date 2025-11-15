@@ -425,7 +425,7 @@ function sendSub(){
   if(!inId || !outId){ alert('Seleziona Entrante e Uscente.'); return; }
   if(inId === outId){ alert('Entrante e Uscente devono essere diversi.'); return; }
   db.ref('/mode').set('subs').then(()=>{
-    db.ref('/subs/show').set({ inId, outId, ttl: 2000, nonce: Date.now() });
+    db.ref('/subs/show').set({ inId, outId, ttl: 2700, nonce: Date.now() });
   });
 }
 
