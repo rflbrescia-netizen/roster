@@ -422,12 +422,41 @@ function renderSubsSelectors(roster){
 function sendSub(){
   const inId  = subInSel.value.trim();
   const outId = subOutSel.value.trim();
-  if(!inId || !outId){ alert('Seleziona Entrante e Uscente.'); return; }
-  if(inId === outId){ alert('Entrante e Uscente devono essere diversi.'); return; }
+
+  if(!inId || !outId){
+    alert('Seleziona Entrante e Uscente.');
+    return;
+  }
+  if(inId === outId){
+    alert('Entrante e Uscente devono essere diversi.');
+    return;
+  }
+
+  // Durata complessiva dell’animazione (stile Euroleague)
+  const totalMs = 3500;   // 3,5 secondi circa
+
+  // Fasi suggerite per l’overlay:
+  //  - 0–800ms   → evidenzia solo USCENTE
+  //  - 800–2600  → mostra ENTRANTE e USCENTE insieme
+  //  - 2600–3500 → fade-out finale
+  const phases = {
+    outOnlyMs:   800,
+    bothMs:     1800,
+    fadeMs:      900
+  };
+
   db.ref('/mode').set('subs').then(()=>{
-    db.ref('/subs/show').set({ inId, outId, ttl: 2700, nonce: Date.now() });
+    db.ref('/subs/show').set({
+      inId,
+      outId,
+      ttl: totalMs,
+      style: 'nba',      // hint per l’overlay: usa layout "basket style"
+      phases,
+      nonce: Date.now()
+    });
   });
 }
+
 
 /* ===== Overlay commands ===== */
 function triggerRoller(){
