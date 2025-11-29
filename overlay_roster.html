@@ -18,50 +18,27 @@
   @keyframes slideDownOut{ 0%{transform:translateY(0);opacity:1}100%{transform:translateY(120%);opacity:0} }
 
   /* LINEUP (sempre una riga) */
-  .lineup-wrap{ position:absolute; top:6%; right:4%; width:60%; height:88%; display:none; }
+  .lineup-wrap{
+    position:absolute;
+    top:6%; right:4%;
+    width:60%; height:88%;
+    display:none;
+  }
+
   .lineup-grid{
-    display:flex;            /* <— riga singola */
-    flex-wrap:nowrap;        /* <— no a capo */
+    display:flex;            /* riga singola */
+    flex-wrap:nowrap;        /* no a capo */
     gap:clamp(10px,1.2vw,18px);
     align-items:center;
     justify-content:flex-start;
     width:100%; height:100%;
     overflow:hidden;         /* evita overflow orizzontale */
   }
-  /* Le immagini del lineup non superano 1/3 dell’altezza schermo */
-.lineup img {
-  max-height: 33vh;   /* 1/3 dell’altezza dello schermo */
-  height: auto;
-  width: auto;
-  object-fit: contain;
-}
-/* Container del lineup: avrà una classe in più in base al numero di giocatori */
-.lineup img {
-  height: auto;
-  width: auto;
-  object-fit: contain;
-}
 
-/* 1 o 2 giocatori */
-.lineup.one img,
-.lineup.two img {
-  max-height: 33vh;
-}
-
-/* 3 giocatori */
-.lineup.three img {
-  max-height: 28vh;
-}
-
-/* 4 o più */
-.lineup.many img {
-  max-height: 22vh;
-}
-
-  
   .lineup-card{
     position:relative;
-    border-radius:16px; overflow:hidden;
+    border-radius:16px;
+    overflow:hidden;
     background:rgba(15,20,30,.92);
     border:1px solid rgba(255,255,255,.08);
     box-shadow:0 10px 26px rgba(0,0,0,.3);
@@ -69,12 +46,48 @@
     animation:fadeIn 220ms ease-out both;
     flex:0 0 auto;           /* dimensione fissata via JS */
   }
-  .lineup-card img{  max-height: 33vh;
-  height: auto;
-  width: auto;
-  object-fit: contain; }
-  .lineup-name{ position:absolute; inset:auto 0 0 0; padding:8px 10px; color:#fff; font-weight:700; background:linear-gradient(to top,rgba(0,0,0,.65),transparent 70%); text-transform:uppercase; font-size:clamp(12px,1.5vw,18px); }
-  @keyframes fadeIn{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:translateY(0)} }
+
+  /* IMMAGINI DEL LINEUP: base */
+  .lineup-card img{
+    height:auto;
+    width:auto;
+    max-height:33vh;         /* limite di default: circa 1/3 schermo */
+    object-fit:contain;
+    display:block;
+    margin:0 auto;
+  }
+
+  /* 1 o 2 giocatori: fissa l’immagine a circa 250px di altezza */
+  .lineup-grid.one .lineup-card img,
+  .lineup-grid.two .lineup-card img{
+    max-height:250px;        /* QUI l’effetto che chiedi */
+  }
+
+  /* 3 giocatori */
+  .lineup-grid.three .lineup-card img{
+    max-height:28vh;
+  }
+
+  /* 4 o più giocatori */
+  .lineup-grid.many .lineup-card img{
+    max-height:22vh;
+  }
+
+  .lineup-name{
+    position:absolute;
+    inset:auto 0 0 0;
+    padding:8px 10px;
+    color:#fff;
+    font-weight:700;
+    background:linear-gradient(to top,rgba(0,0,0,.65),transparent 70%);
+    text-transform:uppercase;
+    font-size:clamp(12px,1.5vw,18px);
+  }
+
+  @keyframes fadeIn{
+    from{opacity:0; transform:translateY(8px)}
+    to{opacity:1; transform:translateY(0)}
+  }
 
   /* FLASH (singolo) */
   .flash-wrap{ position:absolute; bottom:8%; left:4%; width:min(28%,520px); display:none; }
@@ -101,9 +114,13 @@
 <body>
   <div class="stage">
     <div class="roller-lane" id="rollerLane"></div>
-    <div class="lineup-wrap" id="lineupWrap"><div class="lineup-grid" id="lineupGrid"></div></div>
+    <div class="lineup-wrap" id="lineupWrap">
+      <div class="lineup-grid" id="lineupGrid"></div>
+    </div>
     <div class="flash-wrap" id="flashWrap"></div>
-    <div class="subs-wrap" id="subsWrap"><div class="subs-area" id="subsArea"></div></div>
+    <div class="subs-wrap" id="subsWrap">
+      <div class="subs-area" id="subsArea"></div>
+    </div>
   </div>
 
   <!-- Firebase compat SDK -->
@@ -184,9 +201,14 @@ db.ref('/subs/show').on('value', snap => {
 });
 
 /* ---------- Roller ---------- */
-function stopRoller(){ if (rollerAbort) rollerAbort.cancel = true; rollerLane.innerHTML=''; }
+function stopRoller(){
+  if (rollerAbort) rollerAbort.cancel = true;
+  rollerLane.innerHTML='';
+}
+
 async function runRosterRoller(abortToken){
-  rollerLane.innerHTML=''; const players = Object.entries(roster).map(([id,p])=>({id,...p}));
+  rollerLane.innerHTML='';
+  const players = Object.entries(roster).map(([id,p])=>({id,...p}));
   if (!players.length) return;
   for (const p of players){
     if (abortToken.cancel || mode !== 'roller') break;
@@ -195,33 +217,58 @@ async function runRosterRoller(abortToken){
     card.style.animation='slideDownIn 600ms ease-out forwards';
     card.innerHTML = `<img src="${p.img}" alt="${p.name}"><div class="roller-name">${p.name||''}</div>`;
     rollerLane.appendChild(card);
-    await sleep(600); await sleep(2000);
+    await sleep(600);
+    await sleep(2000);
     card.style.animation='slideDownOut 520ms ease-in forwards';
-    await sleep(520); card.remove();
+    await sleep(520);
+    card.remove();
   }
 }
 
 /* ---------- Lineup (sempre una riga) ---------- */
 let lineupTimer=null;
-function clearLineup(){ if(lineupTimer){clearTimeout(lineupTimer);lineupTimer=null;} lineupWrap.style.display='none'; lineupGrid.innerHTML=''; }
+function clearLineup(){
+  if(lineupTimer){clearTimeout(lineupTimer);lineupTimer=null;}
+  lineupWrap.style.display='none';
+  lineupGrid.innerHTML='';
+  lineupGrid.className = 'lineup-grid';
+}
 
 function showLineup(ids, ttl=5000){
   clearLineup();
   lineupGrid.innerHTML='';
+
   // crea cards
   ids.forEach(id=>{
     const p=roster[id]; if(!p) return;
-    const card=document.createElement('div'); card.className='lineup-card';
+    const card=document.createElement('div');
+    card.className='lineup-card';
     card.innerHTML=`<img src="${p.img}" alt="${p.name}"><div class="lineup-name">${p.name||''}</div>`;
     lineupGrid.appendChild(card);
   });
+
+  // aggiunge classe in base al numero di giocatori
+  const n = lineupGrid.children.length;
+  lineupGrid.className = 'lineup-grid';
+  if (n === 1)      lineupGrid.classList.add('one');
+  else if (n === 2) lineupGrid.classList.add('two');
+  else if (n === 3) lineupGrid.classList.add('three');
+  else if (n >= 4)  lineupGrid.classList.add('many');
+
   lineupWrap.style.display='block';
-  layoutLineup();                // calcolo iniziale
+
+  layoutLineup();  // calcolo iniziale
+
   // ricalcolo quando le immagini hanno caricato (in caso di layout shift)
   Array.from(lineupGrid.querySelectorAll('img')).forEach(img=>{
     if (!img.complete) img.addEventListener('load', layoutLineup, { once:true });
   });
-  lineupTimer=setTimeout(() => { clearLineup(); window.removeEventListener('resize', layoutLineup); }, ttl);
+
+  lineupTimer=setTimeout(() => {
+    clearLineup();
+    window.removeEventListener('resize', layoutLineup);
+  }, ttl);
+
   // ascolta resize per tenere una riga
   window.addEventListener('resize', layoutLineup);
 }
@@ -232,45 +279,62 @@ function layoutLineup(){
   if (n===0) return;
 
   const wrapWidth = lineupWrap.clientWidth;
-  // ricava il gap effettivo (fallback 12px)
   const styles = getComputedStyle(lineupGrid);
   const gapPx = parseFloat(styles.gap || styles.columnGap || '12') || 12;
   const totalGap = gapPx * (n - 1);
   const available = Math.max(0, wrapWidth - totalGap);
 
-  // larghezza minima accettabile per card (in px)
   const minCard = 80;
-  // calcolo larghezza ottimale
   let cardW = Math.floor(available / n);
-  if (cardW < minCard) cardW = minCard; // se lo schermo è minuscolo, le card si ridurranno al minimo ma restano sulla riga (può comparire un po' di clip a destra)
+  if (cardW < minCard) cardW = minCard;
 
   Array.from(lineupGrid.children).forEach(c=>{
     c.style.width = cardW + 'px';
-    // aspect-ratio 4/5 mantiene l'altezza coerente
   });
 }
 
 /* ---------- Flash ---------- */
 let flashTimer=null;
-function clearFlash(){ if(flashTimer){clearTimeout(flashTimer);flashTimer=null;} flashWrap.style.display='none'; flashWrap.innerHTML=''; }
+function clearFlash(){
+  if(flashTimer){clearTimeout(flashTimer);flashTimer=null;}
+  flashWrap.style.display='none';
+  flashWrap.innerHTML='';
+}
+
 function showFlash(id, ttl=2000){
-  clearFlash(); const p=roster[id]; if(!p) return;
-  const card=document.createElement('div'); card.className='flash-card';
+  clearFlash();
+  const p=roster[id]; if(!p) return;
+  const card=document.createElement('div');
+  card.className='flash-card';
   card.innerHTML=`<span class="flash-badge">CANESTRO!</span><img src="${p.img}" alt="${p.name}"><div class="flash-name">${p.name||''}</div>`;
-  flashWrap.appendChild(card); flashWrap.style.display='block';
+  flashWrap.appendChild(card);
+  flashWrap.style.display='block';
   flashTimer=setTimeout(clearFlash, ttl);
 }
 
 /* ---------- Subs (Cambi) ---------- */
 let subsTimer=null;
-function clearSubs(){ if(subsTimer){clearTimeout(subsTimer);subsTimer=null;} subsWrap.style.display='none'; subsArea.innerHTML=''; }
+function clearSubs(){
+  if(subsTimer){clearTimeout(subsTimer);subsTimer=null;}
+  subsWrap.style.display='none';
+  subsArea.innerHTML='';
+}
+
 function showSubs(inId, outId, ttl=2000){
-  clearSubs(); const pin=roster[inId], pout=roster[outId]; if(!pin || !pout) return;
-  const inCard = document.createElement('div'); inCard.className='sub-card sub-in'; inCard.style.animation='subInAnim 260ms ease-out both';
+  clearSubs();
+  const pin=roster[inId], pout=roster[outId];
+  if(!pin || !pout) return;
+  const inCard = document.createElement('div');
+  inCard.className='sub-card sub-in';
+  inCard.style.animation='subInAnim 260ms ease-out both';
   inCard.innerHTML=`<span class="sub-badge">IN</span><img src="${pin.img}" alt="${pin.name}"><div class="sub-name">${pin.name||''}</div>`;
-  const outCard= document.createElement('div'); outCard.className='sub-card sub-out'; outCard.style.animation='subOutAnim 420ms ease-in both';
+  const outCard= document.createElement('div');
+  outCard.className='sub-card sub-out';
+  outCard.style.animation='subOutAnim 420ms ease-in both';
   outCard.innerHTML=`<span class="sub-badge">OUT</span><img src="${pout.img}" alt="${pout.name}"><div class="sub-name">${pout.name||''}</div>`;
-  subsArea.appendChild(inCard); subsArea.appendChild(outCard); subsWrap.style.display='block';
+  subsArea.appendChild(inCard);
+  subsArea.appendChild(outCard);
+  subsWrap.style.display='block';
   subsTimer=setTimeout(clearSubs, ttl);
 }
   </script>
