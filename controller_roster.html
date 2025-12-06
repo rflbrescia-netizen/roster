@@ -43,7 +43,9 @@
     display:block;
     margin-bottom:4px;
   }
-  input[type="text"]{
+  input[type="text"],
+  input[type="email"],
+  input[type="password"]{
     width:100%;
     padding:10px 12px;
     border-radius:10px;
@@ -73,12 +75,12 @@
   }
 
   /* === GRIGLIA GIOCATORI (CARDS CLICCABILI) === */
-.players{
-  display:grid;
-  gap:14px;
-  padding-right:0;
-  grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));
-}
+  .players{
+    display:grid;
+    gap:14px;
+    padding-right:0;
+    grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));
+  }
 
   .player{
     border:1px solid rgba(255,255,255,.06);
@@ -163,7 +165,34 @@
 <body>
   <header><h1>Controller Roster — GitHub • Lineup • Roller • Cambi</h1></header>
 
-  <div class="wrap">
+  <!-- PANNELLO LOGIN -->
+  <section id="login-panel" class="card" style="max-width:420px;margin:16px auto;">
+    <h2>Login Roster Controller</h2>
+    <p class="tiny">
+      Inserisci email e password dell’account autorizzato su Firebase per mandare Roller, Lineup e Cambi.
+    </p>
+    <form id="login-form" autocomplete="on">
+      <div class="row" style="grid-template-columns:1fr; margin-bottom:8px;">
+        <div>
+          <label>Email</label>
+          <input type="email" id="login-email" required placeholder="controller@example.com" />
+        </div>
+      </div>
+      <div class="row" style="grid-template-columns:1fr;">
+        <div>
+          <label>Password</label>
+          <input type="password" id="login-password" required placeholder="••••••••" />
+        </div>
+      </div>
+      <div class="bar" style="margin-top:10px; justify-content:space-between;">
+        <button type="submit" class="btn btn-accent" style="flex:1;">Entra</button>
+      </div>
+      <p id="login-error" class="tiny" style="color:var(--danger);margin-top:8px;"></p>
+    </form>
+  </section>
+
+  <!-- CONTROLLER (visibile solo dopo login) -->
+  <div class="wrap" id="controller-panel" style="display:none;">
     <!-- Comandi Overlay (in alto) -->
     <section class="card" style="grid-column: 1 / span 2;">
       <h2>Comandi Overlay</h2>
@@ -171,12 +200,11 @@
         <button class="btn btn-accent" id="btnRoller">Roster Roller</button>
         <button class="btn" id="btnLineup">Invia lineup</button>
         <button class="btn" id="btnStop">Stop / Idle</button>
+        <button class="btn btn-danger" id="btnLogout">Logout</button>
       </div>
       <p class="tiny">• Roller: sequenza automatica. • Lineup: giocatori selezionati. • Stop: pulisci overlay.</p>
     </section>
 
-    <!-- Placeholder a destra (per simmetria) -->
-  
     <!-- Roster -->
     <section class="card" style="grid-column: 1 / span 2;">
       <h2>Giocatori</h2>
@@ -245,6 +273,7 @@
 
   <!-- Firebase compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script>
 /* ===== Firebase CONFIG ===== */
@@ -257,243 +286,299 @@ const firebaseConfig = {
   messagingSenderId: "689419688801",
   appId: "1:689419688801:web:edf1d12948281a77fb0320"
 };
+
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const auth = firebase.auth();
+const db   = firebase.database();
 
-/* ===== Helpers DOM ===== */
+/* ===== DOM Login ===== */
+const loginPanel      = document.getElementById('login-panel');
+const controllerPanel = document.getElementById('controller-panel');
+const loginForm       = document.getElementById('login-form');
+const loginEmail      = document.getElementById('login-email');
+const loginPassword   = document.getElementById('login-password');
+const loginError      = document.getElementById('login-error');
+const logoutBtn       = document.getElementById('btnLogout');
+
+/* Helper globale */
 const $ = (s)=>document.querySelector(s);
-const playersEl = $('#players');
-const statusEl  = $('#status');
-const subInSel  = $('#subIn');
-const subOutSel = $('#subOut');
-const subInImg  = $('#subInImg');
-const subOutImg = $('#subOutImg');
-const subInName = $('#subInName');
-const subOutName= $('#subOutName');
 
-/* ===== Stato selezione giocatori ===== */
-let liveRoster = {};
-let selectedIds = new Set();
+/* Submit login */
+if (loginForm) {
+  loginForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    loginError.textContent = '';
+    const email = (loginEmail.value || '').trim();
+    const pass  = loginPassword.value;
 
-/* ===== Bind UI ===== */
-$('#scan').onclick        = scanRepo;
-$('#btnRoller').onclick   = triggerRoller;
-$('#btnLineup').onclick   = sendLineup;
-$('#btnStop').onclick     = setIdle;
-$('#btnSelAll').onclick   = () => setAllSelected(true);
-$('#btnClearSel').onclick = () => setAllSelected(false);
-$('#btnSendSub').onclick  = sendSub;
+    auth.signInWithEmailAndPassword(email, pass)
+      .then(()=>{
+        // onAuthStateChanged gestisce il resto
+      })
+      .catch(err=>{
+        console.error(err);
+        loginError.textContent = 'Login non riuscito: ' + (err.code || err.message || 'controlla credenziali');
+      });
+  });
+}
 
-/* ===== Live sync roster ===== */
-db.ref('/roster').on('value', snap => {
-  liveRoster = snap.val() || {};
-  renderRoster(liveRoster);
-  renderSubsSelectors(liveRoster);
-  updateDefaultRollerOrder(liveRoster);
+/* Logout */
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', ()=> auth.signOut());
+}
+
+/* Inizializza controller una sola volta dopo login */
+let controllerInitialized = false;
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    // loggato
+    loginPanel.style.display = 'none';
+    controllerPanel.style.display = 'grid';  // la .wrap è una grid
+
+    if (!controllerInitialized) {
+      controllerInitialized = true;
+      initController(user);
+    }
+  } else {
+    // non loggato
+    controllerPanel.style.display = 'none';
+    loginPanel.style.display = 'block';
+  }
 });
 
-/* ===== GitHub → /roster ===== */
-function scanRepo(){
-  const owner = $('#ghOwner').value.trim();
-  const repo  = $('#ghRepo').value.trim();
-  const path  = $('#ghPath').value.trim().replace(/^\/+|\/+$/g,'');
-  const token = $('#ghToken').value.trim();
-  if(!owner || !repo){ alert('Inserisci owner e repo.'); return; }
+/* ===== CONTROLLER ROSTER ===== */
+function initController(user){
 
-  const base = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents`;
-  const api  = path ? `${base}/${encodeURIComponent(path)}` : base;
+  const playersEl = $('#players');
+  const statusEl  = $('#status');
+  const subInSel  = $('#subIn');
+  const subOutSel = $('#subOut');
+  const subInImg  = $('#subInImg');
+  const subOutImg = $('#subOutImg');
+  const subInName = $('#subInName');
+  const subOutName= $('#subOutName');
 
-  statusEl.textContent = 'Scansiono repository...';
-  const headers = { 'Accept':'application/vnd.github+json' };
-  if(token){ headers['Authorization'] = 'Bearer ' + token; }
+  /* Stato selezione giocatori */
+  let liveRoster = {};
+  let selectedIds = new Set();
 
-  fetch(api, { cache:'no-store', headers })
-    .then(res => {
-      if(!res.ok) return res.text().then(t => { throw new Error(`GitHub API HTTP ${res.status} — ${t.slice(0,180)}`); });
-      return res.json();
-    })
-    .then(items => {
-      if(!Array.isArray(items)) throw new Error('Risposta inattesa: non è una lista');
-      const exts = ['.jpg','.jpeg','.png','.webp'];
-      const images = items.filter(x => {
-        const nm = (x && x.name ? x.name.toLowerCase() : '');
-        return x && x.type==='file' && exts.some(ext => nm.endsWith(ext));
+  /* Bind UI */
+  $('#scan').onclick        = scanRepo;
+  $('#btnRoller').onclick   = triggerRoller;
+  $('#btnLineup').onclick   = sendLineup;
+  $('#btnStop').onclick     = setIdle;
+  $('#btnSelAll').onclick   = () => setAllSelected(true);
+  $('#btnClearSel').onclick = () => setAllSelected(false);
+  $('#btnSendSub').onclick  = sendSub;
+
+  /* Live sync roster */
+  db.ref('/roster').on('value', snap => {
+    liveRoster = snap.val() || {};
+    renderRoster(liveRoster);
+    renderSubsSelectors(liveRoster);
+    updateDefaultRollerOrder(liveRoster);
+  });
+
+  /* ===== GitHub → /roster ===== */
+  function scanRepo(){
+    const owner = $('#ghOwner').value.trim();
+    const repo  = $('#ghRepo').value.trim();
+    const path  = $('#ghPath').value.trim().replace(/^\/+|\/+$/g,'');
+    const token = $('#ghToken').value.trim();
+    if(!owner || !repo){ alert('Inserisci owner e repo.'); return; }
+
+    const base = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents`;
+    const api  = path ? `${base}/${encodeURIComponent(path)}` : base;
+
+    statusEl.textContent = 'Scansiono repository...';
+    const headers = { 'Accept':'application/vnd.github+json' };
+    if(token){ headers['Authorization'] = 'Bearer ' + token; }
+
+    fetch(api, { cache:'no-store', headers })
+      .then(res => {
+        if(!res.ok) return res.text().then(t => { throw new Error(`GitHub API HTTP ${res.status} — ${t.slice(0,180)}`); });
+        return res.json();
+      })
+      .then(items => {
+        if(!Array.isArray(items)) throw new Error('Risposta inattesa: non è una lista');
+        const exts = ['.jpg','.jpeg','.png','.webp'];
+        const images = items.filter(x => {
+          const nm = (x && x.name ? x.name.toLowerCase() : '');
+          return x && x.type==='file' && exts.some(ext => nm.endsWith(ext));
+        });
+        if(!images.length){ statusEl.textContent = 'Nessuna immagine trovata nella cartella indicata.'; return; }
+
+        const normalized = {};
+        const now = Date.now();
+        images.forEach(file => {
+          const nameGuess = prettyName(file.name);
+          const id = genId(nameGuess);
+          const imgUrl = file.download_url ? file.download_url : toRaw(owner, repo, path, file.name);
+          normalized[id] = { name: nameGuess, img: imgUrl, updatedAt: now };
+        });
+
+        return db.ref('/roster').set(normalized).then(() => {
+          statusEl.textContent = `Importati ${images.length} giocatori da GitHub.`;
+        });
+      })
+      .catch(e => {
+        console.error(e);
+        statusEl.textContent = 'Errore: ' + (e && e.message ? e.message : e);
+        alert('Errore durante la scansione: ' + (e && e.message ? e.message : e));
       });
-      if(!images.length){ statusEl.textContent = 'Nessuna immagine trovata nella cartella indicata.'; return; }
+  }
 
-      const normalized = {};
-      const now = Date.now();
-      images.forEach(file => {
-        const nameGuess = prettyName(file.name);
-        const id = genId(nameGuess);
-        const imgUrl = file.download_url ? file.download_url : toRaw(owner, repo, path, file.name);
-        normalized[id] = { name: nameGuess, img: imgUrl, updatedAt: now };
-      });
-
-      return db.ref('/roster').set(normalized).then(() => {
-        statusEl.textContent = `Importati ${images.length} giocatori da GitHub.`;
-      });
-    })
-    .catch(e => {
-      console.error(e);
-      statusEl.textContent = 'Errore: ' + (e && e.message ? e.message : e);
-      alert('Errore durante la scansione: ' + (e && e.message ? e.message : e));
+  /* ===== Render Roster (cards cliccabili) ===== */
+  function renderRoster(roster){
+    // mantieni selezione per chi rimane nel roster
+    const newSelected = new Set();
+    Object.keys(roster).forEach(id => {
+      if (selectedIds.has(id)) newSelected.add(id);
     });
-}
+    selectedIds = newSelected;
 
-/* ===== Render Roster (cards cliccabili) ===== */
-function renderRoster(roster){
-  // mantieni selezione per chi rimane nel roster
-  const newSelected = new Set();
-  Object.keys(roster).forEach(id => {
-    if (selectedIds.has(id)) newSelected.add(id);
-  });
-  selectedIds = newSelected;
-
-  playersEl.innerHTML = '';
-  Object.keys(roster).forEach(id => {
-    const p = roster[id] || {};
-    const cacheBust = p.img ? p.img + (p.img.includes('?') ? '&' : '?') + 'v=' + (p.updatedAt||0) : '';
-    const card = document.createElement('div');
-    card.className = 'player';
-    card.dataset.id = id;
-    if (selectedIds.has(id)) card.classList.add('selected');
-    card.innerHTML =
-      `<img src="${cacheBust}" alt="${p.name||''}" onerror="this.style.opacity=0.4">
-       <div class="name">${p.name||''}</div>`;
-    card.onclick = () => togglePlayerSelection(id, card);
-    playersEl.appendChild(card);
-  });
-}
-
-function togglePlayerSelection(id, cardEl){
-  if (selectedIds.has(id)) {
-    selectedIds.delete(id);
-    cardEl.classList.remove('selected');
-  } else {
-    selectedIds.add(id);
-    cardEl.classList.add('selected');
-  }
-}
-
-function setAllSelected(val){
-  selectedIds.clear();
-  if (val) {
-    Object.keys(liveRoster).forEach(id => selectedIds.add(id));
-  }
-  document.querySelectorAll('.player').forEach(el => {
-    const id = el.dataset.id;
-    el.classList.toggle('selected', val && liveRoster[id]);
-  });
-}
-
-/* ===== Roller: ordine di default = elenco giocatori ===== */
-function updateDefaultRollerOrder(roster){
-  const ids = Object.keys(roster);
-  db.ref('/roller/order').set(ids);
-}
-
-/* ===== Cambi (Entrante/Uscente) ===== */
-function renderSubsSelectors(roster){
-  const entries = Object.entries(roster);
-  const buildOpts = (sel) => {
-    sel.innerHTML = '<option value="">— seleziona —</option>' + entries.map(([id,p])=>(
-      `<option value="${id}" data-img="${p.img}">${p.name||id}</option>`
-    )).join('');
-  };
-  buildOpts(subInSel); buildOpts(subOutSel);
-  const updatePreview = () => {
-    const inId  = subInSel.value,  outId = subOutSel.value;
-    if (inId && liveRoster[inId])  { subInImg.src  = liveRoster[inId].img;  subInName.textContent  = liveRoster[inId].name||inId; }
-    else { subInImg.removeAttribute('src'); subInName.textContent=''; }
-    if (outId && liveRoster[outId]){ subOutImg.src = liveRoster[outId].img; subOutName.textContent = liveRoster[outId].name||outId; }
-    else { subOutImg.removeAttribute('src'); subOutName.textContent=''; }
-  };
-  subInSel.onchange = updatePreview;
-  subOutSel.onchange= updatePreview;
-  updatePreview();
-}
-function sendSub(){
-  const inId  = subInSel.value.trim();
-  const outId = subOutSel.value.trim();
-
-  if(!inId || !outId){
-    alert('Seleziona Entrante e Uscente.');
-    return;
-  }
-  if(inId === outId){
-    alert('Entrante e Uscente devono essere diversi.');
-    return;
-  }
-
-  // Durata complessiva dell’animazione (stile Euroleague)
-  const totalMs = 3500;   // 3,5 secondi circa
-
-  // Fasi suggerite per l’overlay:
-  //  - 0–800ms   → evidenzia solo USCENTE
-  //  - 800–2600  → mostra ENTRANTE e USCENTE insieme
-  //  - 2600–3500 → fade-out finale
-  const phases = {
-    outOnlyMs:   800,
-    bothMs:     1800,
-    fadeMs:      900
-  };
-
-  db.ref('/mode').set('subs').then(()=>{
-    db.ref('/subs/show').set({
-      inId,
-      outId,
-      ttl: totalMs,
-      style: 'nba',      // hint per l’overlay: usa layout "basket style"
-      phases,
-      nonce: Date.now()
+    playersEl.innerHTML = '';
+    Object.keys(roster).forEach(id => {
+      const p = roster[id] || {};
+      const cacheBust = p.img ? p.img + (p.img.includes('?') ? '&' : '?') + 'v=' + (p.updatedAt||0) : '';
+      const card = document.createElement('div');
+      card.className = 'player';
+      card.dataset.id = id;
+      if (selectedIds.has(id)) card.classList.add('selected');
+      card.innerHTML =
+        `<img src="${cacheBust}" alt="${p.name||''}" onerror="this.style.opacity=0.4">
+         <div class="name">${p.name||''}</div>`;
+      card.onclick = () => togglePlayerSelection(id, card);
+      playersEl.appendChild(card);
     });
-  });
-}
+  }
 
+  function togglePlayerSelection(id, cardEl){
+    if (selectedIds.has(id)) {
+      selectedIds.delete(id);
+      cardEl.classList.remove('selected');
+    } else {
+      selectedIds.add(id);
+      cardEl.classList.add('selected');
+    }
+  }
 
-/* ===== Overlay commands ===== */
-function triggerRoller(){
-  db.ref('/mode').set('roller').then(()=>db.ref('/roller/start').set(Date.now()));
-}
-function sendLineup(){
-  const picks = Array.from(selectedIds);
-  if(!picks.length){ alert('Seleziona almeno un giocatore cliccando sulle foto.'); return; }
-  db.ref('/mode').set('lineup').then(()=>{
-    db.ref('/lineup/show').set({ playerIds: picks, ttl: 5000, nonce: Date.now() });
-  });
-}
-function setIdle(){
-  db.ref('/mode').set('idle');
-  db.ref('/lineup/show').set(null);
-  db.ref('/flash/show').set(null);
-  db.ref('/roller/start').set(null);
-  db.ref('/subs/show').set(null);
-}
+  function setAllSelected(val){
+    selectedIds.clear();
+    if (val) {
+      Object.keys(liveRoster).forEach(id => selectedIds.add(id));
+    }
+    document.querySelectorAll('.player').forEach(el => {
+      const id = el.dataset.id;
+      el.classList.toggle('selected', val && liveRoster[id]);
+    });
+  }
 
-/* ===== (opzionale) flash singolo giocatore – funzione lasciata per compatibilità ===== */
-function flashPlayer(playerId){
-  db.ref('/mode').set('flash').then(()=>{
-    db.ref('/flash/show').set({ playerId, ttl: 2000, nonce: Date.now() });
-  });
-}
+  /* ===== Roller: ordine di default = elenco giocatori ===== */
+  function updateDefaultRollerOrder(roster){
+    const ids = Object.keys(roster);
+    db.ref('/roller/order').set(ids);
+  }
 
-/* ===== Utils ===== */
-function toRaw(owner, repo, path, name){
-  const p = path ? (path.replace(/^\/+|\/+$/g,'') + '/') : '';
-  return `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${p}${name}`;
-}
-function prettyName(filename){
-  const base = filename.replace(/\.[^.]+$/, '');
-  const spaced = base.replace(/[_\-\.]+/g, ' ').trim();
-  return spaced.split(' ').map(w => w ? (w[0].toUpperCase()+w.slice(1).toLowerCase()) : '').join(' ').trim();
-}
-function genId(name){
-  const base = String(name).toLowerCase()
-               .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-               .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
-  return base + '-' + Math.random().toString(36).slice(2,6);
-}
+  /* ===== Cambi (Entrante/Uscente) ===== */
+  function renderSubsSelectors(roster){
+    const entries = Object.entries(roster);
+    const buildOpts = (sel) => {
+      sel.innerHTML = '<option value="">— seleziona —</option>' + entries.map(([id,p])=>(
+        `<option value="${id}" data-img="${p.img}">${p.name||id}</option>`
+      )).join('');
+    };
+    buildOpts(subInSel); buildOpts(subOutSel);
+    const updatePreview = () => {
+      const inId  = subInSel.value,  outId = subOutSel.value;
+      if (inId && liveRoster[inId])  { subInImg.src  = liveRoster[inId].img;  subInName.textContent  = liveRoster[inId].name||inId; }
+      else { subInImg.removeAttribute('src'); subInName.textContent=''; }
+      if (outId && liveRoster[outId]){ subOutImg.src = liveRoster[outId].img; subOutName.textContent = liveRoster[outId].name||outId; }
+      else { subOutImg.removeAttribute('src'); subOutName.textContent=''; }
+    };
+    subInSel.onchange = updatePreview;
+    subOutSel.onchange= updatePreview;
+    updatePreview();
+  }
+
+  function sendSub(){
+    const inId  = (subInSel.value || '').trim();
+    const outId = (subOutSel.value || '').trim();
+
+    if(!inId || !outId){
+      alert('Seleziona Entrante e Uscente.');
+      return;
+    }
+    if(inId === outId){
+      alert('Entrante e Uscente devono essere diversi.');
+      return;
+    }
+
+    // Durata complessiva dell’animazione
+    const totalMs = 3500;   // 3,5 secondi circa
+    const phases = {
+      outOnlyMs:   800,
+      bothMs:     1800,
+      fadeMs:      900
+    };
+
+    db.ref('/mode').set('subs').then(()=>{
+      db.ref('/subs/show').set({
+        inId,
+        outId,
+        ttl: totalMs,
+        style: 'nba',
+        phases,
+        nonce: Date.now()
+      });
+    });
+  }
+
+  /* ===== Overlay commands ===== */
+  function triggerRoller(){
+    db.ref('/mode').set('roller').then(()=>db.ref('/roller/start').set(Date.now()));
+  }
+  function sendLineup(){
+    const picks = Array.from(selectedIds);
+    if(!picks.length){ alert('Seleziona almeno un giocatore cliccando sulle foto.'); return; }
+    db.ref('/mode').set('lineup').then(()=>{
+      db.ref('/lineup/show').set({ playerIds: picks, ttl: 5000, nonce: Date.now() });
+    });
+  }
+  function setIdle(){
+    db.ref('/mode').set('idle');
+    db.ref('/lineup/show').set(null);
+    db.ref('/flash/show').set(null);
+    db.ref('/roller/start').set(null);
+    db.ref('/subs/show').set(null);
+  }
+
+  /* ===== (opzionale) flash singolo giocatore ===== */
+  function flashPlayer(playerId){
+    db.ref('/mode').set('flash').then(()=>{
+      db.ref('/flash/show').set({ playerId, ttl: 2000, nonce: Date.now() });
+    });
+  }
+
+  /* ===== Utils ===== */
+  function toRaw(owner, repo, path, name){
+    const p = path ? (path.replace(/^\/+|\/+$/g,'') + '/') : '';
+    return `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${p}${name}`;
+  }
+  function prettyName(filename){
+    const base = filename.replace(/\.[^.]+$/, '');
+    const spaced = base.replace(/[_\-\.]+/g, ' ').trim();
+    return spaced.split(' ').map(w => w ? (w[0].toUpperCase()+w.slice(1).toLowerCase()) : '').join(' ').trim();
+  }
+  function genId(name){
+    const base = String(name).toLowerCase()
+                 .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+                 .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+    return base + '-' + Math.random().toString(36).slice(2,6);
+  }
+
+} // fine initController
   </script>
 </body>
 </html>
